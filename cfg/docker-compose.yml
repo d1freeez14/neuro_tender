@@ -1,0 +1,101 @@
+version: '3.8'
+
+services:
+  dgpycrw:
+    build: 
+      context: ./dgpycrw
+      dockerfile: Dockerfile
+    container_name: neuro_tender_web
+    ports:
+      - "80:80"
+    volumes:
+      - ..:/app
+      - ./logs:/app/log
+      - ./data:/app/cnt
+    environment:
+      - PYTHONPATH=/app/crw
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    depends_on:
+      - dgollama
+    networks:
+      - neuro_tender_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  dgollama:
+    build: 
+      context: ./dgollama
+      dockerfile: Dockerfile
+    container_name: neuro_tender_ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ..:/app
+      - ../mod1:/root/.ollama
+      - ./logs:/app/log
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+      - OLLAMA_ORIGINS=*
+    restart: unless-stopped
+    networks:
+      - neuro_tender_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+        reservations:
+          memory: 4G
+
+  dgollama1:
+    build: 
+      context: ./dgollama1
+      dockerfile: Dockerfile
+    container_name: neuro_tender_ollama_backup
+    ports:
+      - "11435:11434"
+    volumes:
+      - ..:/app
+      - ../mod1:/root/.ollama
+      - ./logs:/app/log
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+      - OLLAMA_ORIGINS=*
+    restart: unless-stopped
+    networks:
+      - neuro_tender_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+        reservations:
+          memory: 4G
+
+networks:
+  neuro_tender_network:
+    driver: bridge
+    name: neuro_tender_network
+
+volumes:
+  model_data:
+    driver: local
+  logs:
+    driver: local
+  app_data:
+    driver: local
